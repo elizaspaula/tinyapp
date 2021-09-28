@@ -4,18 +4,15 @@ const PORT = 8080; // default port 8080
 
 app.set("view engine", "ejs");
 
-function generateRadomString(length, chars) {
+function generateRadomString(
+  length,
+  chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+) {
   let result = "";
   for (let i = length; i > 0; --i)
     result += chars[Math.floor(Math.random() * chars.length)];
   return result;
 }
-console.log(
-  generateRadomString(
-    5,
-    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-  )
-);
 
 const urlDatabase = {
   b2xVn2: "http://www.lighthouselabs.ca",
@@ -39,8 +36,9 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // Log the POST request body to the console
-  res.send("Ok"); // Respond with 'Ok' (we will replace this)
+  const shortURL = generateRadomString(6);
+  urlDatabase[shortURL] = req.body.longURL;
+  res.redirect("/urls/" + shortURL);
 });
 
 app.get("/urls/new", (req, res) => {
@@ -50,9 +48,15 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
-    longURL: req.params.longURL,
+    longURL: urlDatabase[req.params.shortURL],
   };
   res.render("urls_show", templateVars);
+});
+
+app.get("/u/:shortURL", (req, res) => {
+  const shortURL = req.params.shortURL;
+  const longURL = urlDatabase[shortURL];
+  res.redirect(longURL);
 });
 
 app.listen(PORT, () => {
