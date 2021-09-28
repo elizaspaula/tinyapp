@@ -1,6 +1,9 @@
 const express = require("express");
+const morgan = require("morgan");
 const app = express();
 const PORT = 8080; // default port 8080
+
+app.use(morgan("dev"));
 
 app.set("view engine", "ejs");
 
@@ -57,6 +60,13 @@ app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL];
   res.redirect(longURL);
+});
+
+app.post("/urls/:shortURL/delete", (req, res) => {
+  //1. remove the object from the database
+  const shortURL = req.params.shortURL;
+  delete urlDatabase[shortURL];
+  res.redirect("/urls");
 });
 
 app.listen(PORT, () => {
