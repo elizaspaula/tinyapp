@@ -5,9 +5,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 
 app.use(cookieParser());
-
 app.use(morgan("dev"));
-
 app.set("view engine", "ejs");
 
 function generateRadomString(
@@ -30,6 +28,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
+});
+
+// GET Register page
+app.get("/register", (req, res) => {
+  res.render("urls_register");
 });
 
 app.get("/urls.json", (req, res) => {
