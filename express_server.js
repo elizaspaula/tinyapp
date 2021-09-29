@@ -37,7 +37,7 @@ app.get("/urls.json", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  const templateVars = { urls: urlDatabase, username: req.cookies["username"] };
   res.render("urls_index", templateVars);
 });
 
@@ -48,13 +48,15 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  const templateVars = { username: req.cookies["username"] };
+  res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:shortURL", (req, res) => {
   const templateVars = {
     shortURL: req.params.shortURL,
     longURL: urlDatabase[req.params.shortURL],
+    username: req.cookies["username"],
   };
   res.render("urls_show", templateVars);
 });
@@ -73,13 +75,6 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 });
 
 //Update using POST
-// Requires to change on the client and the server
-// Once the user submits an Update request, it should modify the corresponding longURL, and then redirect the client back to "/urls".
-
-// a. display the update form -- > URL form
-
-// b. post request to update the data in the URLDatabase
-
 app.post("/urls/:shortURL/edit", (req, res) => {
   // extract the shortURL form the URL = > req.param
   const shortUrlID = req.params.shortURL;
@@ -90,6 +85,20 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   res.redirect("/urls/" + shortUrlID);
 });
 
+//Login route
+
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  res.cookie("username", username);
+  res.redirect("/urls/");
+});
+
+//Logout route
+app.post("/logout", (req, res) => {
+  const username = req.body.username;
+  res.clearCookie("username", username);
+  res.redirect("/urls/");
+});
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
