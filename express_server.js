@@ -62,11 +62,29 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(longURL);
 });
 
+//Delete
 app.post("/urls/:shortURL/delete", (req, res) => {
-  //1. remove the object from the database
   const shortURL = req.params.shortURL;
   delete urlDatabase[shortURL];
   res.redirect("/urls");
+});
+
+//Update using POST
+// Requires to change on the client and the server
+// Once the user submits an Update request, it should modify the corresponding longURL, and then redirect the client back to "/urls".
+
+// a. display the update form -- > URL form
+
+// b. post request to update the data in the URLDatabase
+
+app.post("/urls/:shortURL/edit", (req, res) => {
+  // extract the shortURL form the URL = > req.param
+  const shortUrlID = req.params.shortURL;
+  // extract the LongURL content from the form = > req.body
+  const newURL = req.body.newURL;
+  // update the URL content in the db associated with the shortURLid
+  urlDatabase[shortUrlID] = newURL;
+  res.redirect("/urls/" + shortUrlID);
 });
 
 app.listen(PORT, () => {
