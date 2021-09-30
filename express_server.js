@@ -1,5 +1,6 @@
 const express = require("express");
 const morgan = require("morgan");
+const bcrypt = require("bcryptjs");
 const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -61,7 +62,7 @@ function generateRadomString(
   return result;
 }
 
-// Check if current cookies correspond with the user in the database
+//function CookieHasUser
 const cookieHasUser = function (cookies, usersDatabase) {
   for (const user in usersDatabase) {
     if (cookies === true) {
@@ -78,34 +79,35 @@ app.get("/", (req, res) => {
   res.send("<html><body>Hello <b>World</b></body></html>\n");
 });
 
-// GET Register page
+//  --- GET Register page
 app.get("/register", (req, res) => {
   res.render("urls_register");
 });
 
-// // POST Register page
+//  --- POST Register page
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-
-  // check if the email and password are not blank
   if (!email || !password) {
     return res.status(400).send("email or password cannot be blank");
   }
 
-  // check to see if email exists in database already
   const user = findUserByEmail(email);
 
   if (user) {
     return res.status(400).send("user with that email currently exists");
   }
 
+  // 1. Generated new password with hash
+  const hashedPassword = bcrypt.hashSync(password, 10);
+  console.log("Hash pass:", password, hashedPassword);
+
   const id = generateRadomString(4);
 
   usersDatabase[id] = {
     id: id,
     email: email,
-    password: password,
+    password: hashedPassword,
   };
 
   console.log("user", usersDatabase);
@@ -113,9 +115,13 @@ app.post("/register", (req, res) => {
   res.redirect("/urls");
 });
 
+//  --- GET "/urls.json",
+
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
+
+// GET --- "/urls"
 
 app.get("/urls", (req, res) => {
   const userId = req.cookies["UserId"];
@@ -123,17 +129,19 @@ app.get("/urls", (req, res) => {
   const templateVars = { urls: urlsForUser(userId), user: user };
 
   if (!user) {
-    res.render("urls_unlogged");
+    return res.render("urls_unlogged");
   }
 
   res.render("urls_index", templateVars);
 });
 
+// --- POST "/urls"
+
 app.post("/urls", (req, res) => {
   const userID = req.cookies["UserId"];
   const user = usersDatabase[userID];
   if (!user) {
-    res.status(401).send("Access denied");
+    return res.status(401).send("Access denied");
   }
   const shortURL = generateRadomString(6);
   urlDatabase[shortURL] = {
@@ -144,30 +152,34 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls/" + shortURL);
 });
 
+// --- GET "/urls/new"
+
 app.get("/urls/new", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
   const templateVars = { user };
 
   if (!user) {
-    res.redirect("/login");
+    return res.redirect("/login");
   }
 
   res.render("urls_new", templateVars);
 });
+
+// ---- GET /urls/:shortURL
 
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
 
   if (!user) {
-    res.render("urls_unlogged");
+    return res.render("urls_unlogged");
   }
 
   const url = urlDatabase[req.params.shortURL];
 
   if (url.userID !== userId) {
-    res.send("User it is not the owner of the shortURL");
+    return res.send("User it is not the owner of the shortURL");
   }
 
   const templateVars = {
@@ -179,41 +191,43 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+// --- GET /u/:shortURL
+
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const longURL = urlDatabase[shortURL].longURL;
   res.redirect(longURL);
 });
 
-//Delete using Post
+// --- POST /urls/:shortURL/delete"
 app.post("/urls/:shortURL/delete", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
 
   if (!user) {
-    res.status(401).send("Access denied");
+    return res.status(401).send("Access denied");
   }
 
   const shortURL = req.params.shortURL;
   if (urlDatabase[shortURL].userID !== userId) {
-    res.send("User it is not the owner of the shortURL");
+    return res.send("User it is not the owner of the shortURL");
   }
 
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
 
-//Update using POST
+// --- POST EDIT
 app.post("/urls/:shortURL/edit", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
 
   if (!user) {
-    res.status(401).send("Access denied");
+    return res.status(401).send("Access denied");
   }
   const shortUrlID = req.params.shortURL;
   if (urlDatabase[shortUrlID].userID !== userId) {
-    res.send("User it is not the owner of the shortURL");
+    return res.send("User it is not the owner of the shortURL");
   }
 
   const newURL = req.body.newURL;
@@ -221,41 +235,37 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   res.redirect("/urls/" + shortUrlID);
 });
 
-// GET Login rout
+//  ---GET LOGIN
 app.get("/login", (req, res) => {
   res.render("urls_login");
 });
 
-//POST Login route
-
+// ---POST LOGIN
 app.post("/login", (req, res) => {
   console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
 
-  // check if client sent down blank email or password
+  const user = findUserByEmail(email);
+
   if (!email || !password) {
     return res.status(403).send("email or password cannot be blank");
   }
 
-  const user = findUserByEmail(email);
-
-  // if that user exists with that email
   if (!user) {
     return res.status(403).send("no user with that email was found");
   }
 
-  // does the password provided from the request
-  // match the password of the user
-  if (user.password !== password) {
+  const hashedPassword = user.password;
+
+  if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("password does not match");
   }
-
   res.cookie("UserId", user.id);
   res.redirect("/urls/");
 });
 
-//Logout route
+//--- POST "/logout"
 app.post("/logout", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
