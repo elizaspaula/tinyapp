@@ -120,7 +120,7 @@ app.get("/urls", (req, res) => {
   const templateVars = { urls: urlDatabase, user: user };
 
   if (!user) {
-    res.redirect("/login");
+    res.render("urls_unlogged");
   }
 
   res.render("urls_index", templateVars);
@@ -243,11 +243,6 @@ app.post("/login", (req, res) => {
 app.post("/logout", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
-
-  if (!user) {
-    res.status(401).send("Access denied");
-  }
-
   res.clearCookie("UserId");
   res.redirect("/urls/");
 });
