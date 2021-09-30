@@ -19,14 +19,9 @@ const urlDatabase = {
   },
 };
 
-// const urlDatabase = {
-//   b2xVn2: "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com",
-// };
-
 const usersDatabase = {
-  1234: {
-    id: "1234",
+  aJ48lW: {
+    id: "aJ48lW",
     email: "elizabete@live.com",
     password: "1234",
   },
@@ -41,6 +36,18 @@ const findUserByEmail = (email) => {
     }
   }
   return null;
+};
+
+// function urlsForUser
+const urlsForUser = (id) => {
+  const result = {};
+  for (const url in urlDatabase) {
+    const user = urlDatabase[url].userID;
+    if (user === id) {
+      result[url] = urlDatabase[url];
+    }
+  }
+  return result;
 };
 
 // Function to generate Randon ID
@@ -89,10 +96,6 @@ app.post("/register", (req, res) => {
   // check to see if email exists in database already
   const user = findUserByEmail(email);
 
-  if (!user) {
-    res.redirect("/login");
-  }
-
   if (user) {
     return res.status(400).send("user with that email currently exists");
   }
@@ -117,7 +120,7 @@ app.get("/urls.json", (req, res) => {
 app.get("/urls", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
-  const templateVars = { urls: urlDatabase, user: user };
+  const templateVars = { urls: urlsForUser(userId), user: user };
 
   if (!user) {
     res.render("urls_unlogged");
@@ -127,15 +130,15 @@ app.get("/urls", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  const userId = req.cookies["UserId"];
-  const user = usersDatabase[userId];
+  const userID = req.cookies["UserId"];
+  const user = usersDatabase[userID];
   if (!user) {
     res.status(401).send("Access denied");
   }
   const shortURL = generateRadomString(6);
   urlDatabase[shortURL] = {
     longURL: req.body.longURL,
-    userId,
+    userID,
   };
 
   res.redirect("/urls/" + shortURL);
@@ -158,12 +161,18 @@ app.get("/urls/:shortURL", (req, res) => {
   const user = usersDatabase[userId];
 
   if (!user) {
-    res.redirect("/login");
+    res.render("urls_unlogged");
+  }
+
+  const url = urlDatabase[req.params.shortURL];
+
+  if (url.userID !== userId) {
+    res.send("User it is not the owner of the shortURL");
   }
 
   const templateVars = {
     shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL].longURL,
+    longURL: url.longURL,
     user,
   };
 
@@ -186,6 +195,10 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   }
 
   const shortURL = req.params.shortURL;
+  if (urlDatabase[shortURL].userID !== userId) {
+    res.send("User it is not the owner of the shortURL");
+  }
+
   delete urlDatabase[shortURL];
   res.redirect("/urls");
 });
@@ -198,8 +211,11 @@ app.post("/urls/:shortURL/edit", (req, res) => {
   if (!user) {
     res.status(401).send("Access denied");
   }
-
   const shortUrlID = req.params.shortURL;
+  if (urlDatabase[shortUrlID].userID !== userId) {
+    res.send("User it is not the owner of the shortURL");
+  }
+
   const newURL = req.body.newURL;
   urlDatabase[shortUrlID].longURL = newURL;
   res.redirect("/urls/" + shortUrlID);
