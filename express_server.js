@@ -4,7 +4,12 @@ const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
 const cookieParser = require("cookie-parser");
 const app = express();
-const PORT = 8080; // default port 8080
+const PORT = 8080;
+const {
+  findUserByEmail,
+  urlsForUser,
+  generateRadomString,
+} = require("./helpers");
 
 app.use(cookieParser());
 app.use(morgan("dev"));
@@ -37,55 +42,16 @@ const usersDatabase = {
   },
 };
 
-// Check if the username it's on the database
-const findUserByEmail = (email) => {
-  for (const userId in usersDatabase) {
-    const user = usersDatabase[userId];
-    if (user.email === email) {
-      return user;
-    }
-  }
-  return null;
-};
-
-// function urlsForUser
-const urlsForUser = (id) => {
-  const result = {};
-  for (const url in urlDatabase) {
-    const user = urlDatabase[url].userID;
-    if (user === id) {
-      result[url] = urlDatabase[url];
-    }
-  }
-  return result;
-};
-
-// Function to generate Randon ID
-function generateRadomString(
-  length,
-  chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-) {
-  let result = "";
-  for (let i = length; i > 0; --i)
-    result += chars[Math.floor(Math.random() * chars.length)];
-  return result;
-}
-
-//function CookieHasUser
-const cookieHasUser = function (cookies, usersDatabase) {
-  for (const user in usersDatabase) {
-    if (cookies === true) {
-      return true;
-    }
-    return false;
-  }
-};
-
 const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
+  const userId = req.session.user_id;
+  const user = usersDatabase[userId];
+  if (!user) {
+    return res.redirect("/login");
+  }
+  res.redirect("/url");
 });
 
 //  --- GET Register page
@@ -97,11 +63,11 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
+  const user = findUserByEmail(email);
+
   if (!email || !password) {
     return res.status(400).send("email or password cannot be blank");
   }
-
-  const user = findUserByEmail(email);
 
   if (user) {
     return res.status(400).send("user with that email currently exists");
@@ -135,22 +101,18 @@ app.get("/urls.json", (req, res) => {
 
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
-  console.log(userId);
-  //const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
-  const templateVars = { urls: urlsForUser(userId), user: user };
+  const templateVars = { urls: urlsForUser(userId, urlDatabase), user: user };
 
   if (!user) {
-    return res.render("urls_unlogged");
+    return res.status(401).render("urls_unlogged");
   }
-
   res.render("urls_index", templateVars);
 });
 
 // --- POST "/urls"
 
 app.post("/urls", (req, res) => {
-  //const userID = req.cookies["UserId"];
   const userID = req.session.user_id;
   const user = usersDatabase[userID];
   if (!user) {
@@ -259,7 +221,7 @@ app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
 
-  const user = findUserByEmail(email);
+  const user = findUserByEmail(email, usersDatabase);
   console.log("userID POST:", user);
 
   if (!email || !password) {
