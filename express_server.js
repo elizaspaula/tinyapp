@@ -1,6 +1,7 @@
 const express = require("express");
 const morgan = require("morgan");
 const bcrypt = require("bcryptjs");
+const cookieSession = require("cookie-session");
 const cookieParser = require("cookie-parser");
 const app = express();
 const PORT = 8080; // default port 8080
@@ -8,6 +9,14 @@ const PORT = 8080; // default port 8080
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.set("view engine", "ejs");
+
+app.use(
+  cookieSession({
+    name: "session",
+    keys: ["Some way to encrypt the values", "$!~`yEs123bla!!%"],
+    maxAge: 24 * 60 * 60 * 1000,
+  })
+);
 
 const urlDatabase = {
   b6UTxQ: {
@@ -24,7 +33,7 @@ const usersDatabase = {
   aJ48lW: {
     id: "aJ48lW",
     email: "elizabete@live.com",
-    password: "1234",
+    password: bcrypt.hashSync("1234", 10),
   },
 };
 
@@ -100,18 +109,19 @@ app.post("/register", (req, res) => {
 
   // 1. Generated new password with hash
   const hashedPassword = bcrypt.hashSync(password, 10);
-  console.log("Hash pass:", password, hashedPassword);
+  //console.log("Hash pass:", password, hashedPassword);
 
-  const id = generateRadomString(4);
+  const newUserID = generateRadomString(4);
 
-  usersDatabase[id] = {
-    id: id,
+  usersDatabase[newUserID] = {
+    id: newUserID,
     email: email,
     password: hashedPassword,
   };
 
   console.log("user", usersDatabase);
-  res.cookie("UserId", id);
+  //res.cookie("UserId", id);
+  req.session.user_id = newUserID; //encrypted the new user iD
   res.redirect("/urls");
 });
 
@@ -124,7 +134,9 @@ app.get("/urls.json", (req, res) => {
 // GET --- "/urls"
 
 app.get("/urls", (req, res) => {
-  const userId = req.cookies["UserId"];
+  const userId = req.session.user_id;
+  console.log(userId);
+  //const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
   const templateVars = { urls: urlsForUser(userId), user: user };
 
@@ -138,7 +150,8 @@ app.get("/urls", (req, res) => {
 // --- POST "/urls"
 
 app.post("/urls", (req, res) => {
-  const userID = req.cookies["UserId"];
+  //const userID = req.cookies["UserId"];
+  const userID = req.session.user_id;
   const user = usersDatabase[userID];
   if (!user) {
     return res.status(401).send("Access denied");
@@ -155,7 +168,7 @@ app.post("/urls", (req, res) => {
 // --- GET "/urls/new"
 
 app.get("/urls/new", (req, res) => {
-  const userId = req.cookies["UserId"];
+  const userId = req.session.user_id;
   const user = usersDatabase[userId];
   const templateVars = { user };
 
@@ -169,7 +182,7 @@ app.get("/urls/new", (req, res) => {
 // ---- GET /urls/:shortURL
 
 app.get("/urls/:shortURL", (req, res) => {
-  const userId = req.cookies["UserId"];
+  const userId = req.session.user_id;
   const user = usersDatabase[userId];
 
   if (!user) {
@@ -201,7 +214,7 @@ app.get("/u/:shortURL", (req, res) => {
 
 // --- POST /urls/:shortURL/delete"
 app.post("/urls/:shortURL/delete", (req, res) => {
-  const userId = req.cookies["UserId"];
+  const userId = req.session.user_id;
   const user = usersDatabase[userId];
 
   if (!user) {
@@ -219,7 +232,7 @@ app.post("/urls/:shortURL/delete", (req, res) => {
 
 // --- POST EDIT
 app.post("/urls/:shortURL/edit", (req, res) => {
-  const userId = req.cookies["UserId"];
+  const userId = req.session.user_id;
   const user = usersDatabase[userId];
 
   if (!user) {
@@ -242,11 +255,12 @@ app.get("/login", (req, res) => {
 
 // ---POST LOGIN
 app.post("/login", (req, res) => {
-  console.log(req.body);
+  //console.log(req.body);
   const email = req.body.email;
   const password = req.body.password;
 
   const user = findUserByEmail(email);
+  console.log("userID POST:", user);
 
   if (!email || !password) {
     return res.status(403).send("email or password cannot be blank");
@@ -261,15 +275,14 @@ app.post("/login", (req, res) => {
   if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("password does not match");
   }
-  res.cookie("UserId", user.id);
+  //res.cookie("UserId", user.id);
+  req.session.user_id = user.id;
   res.redirect("/urls/");
 });
 
 //--- POST "/logout"
 app.post("/logout", (req, res) => {
-  const userId = req.cookies["UserId"];
-  const user = usersDatabase[userId];
-  res.clearCookie("UserId");
+  req.session = null;
   res.redirect("/urls/");
 });
 
