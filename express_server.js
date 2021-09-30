@@ -16,7 +16,7 @@ const urlDatabase = {
 const usersDatabase = {
   1234: {
     id: "1234",
-    email: "elizabete",
+    email: "elizabete@live.com",
     password: "abc",
   },
 };
@@ -115,6 +115,11 @@ app.get("/urls/new", (req, res) => {
   const userId = req.cookies["UserId"];
   const user = usersDatabase[userId];
   const templateVars = { user };
+
+  if (!user) {
+    res.redirect("/login");
+  }
+
   res.render("urls_new", templateVars);
 });
 
