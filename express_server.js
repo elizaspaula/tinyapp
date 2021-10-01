@@ -11,6 +11,11 @@ const {
   generateRandomString,
 } = require("./helpers");
 
+const urlDatabase = {};
+const usersDatabase = {};
+
+const bodyParser = require("body-parser");
+
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.set("view engine", "ejs");
@@ -23,27 +28,9 @@ app.use(
   })
 );
 
-const urlDatabase = {
-  b6UTxQ: {
-    longURL: "https://www.tsn.ca",
-    userID: "aJ48lW",
-  },
-  i3BoGr: {
-    longURL: "https://www.google.ca",
-    userID: "aJ48lW",
-  },
-};
-
-const usersDatabase = {
-  aJ48lW: {
-    id: "aJ48lW",
-    email: "elizabete@live.com",
-    password: bcrypt.hashSync("1234", 10),
-  },
-};
-
-const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: true }));
+
+//Below the end point
 
 app.get("/", (req, res) => {
   const userId = req.session.user_id;
