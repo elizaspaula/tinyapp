@@ -1,4 +1,4 @@
-# TinyApp Project
+# TinyApp Project - Lightthouse Labs
 
 TinyApp is a full stack web application built with Node and Express that allows users to shorten long URLs (à la bit.ly).
 
@@ -24,8 +24,6 @@ TinyApp is a full stack web application built with Node and Express that allows 
 
 - Warning message to display when the user is not logged
 ![image](https://user-images.githubusercontent.com/88399956/135560494-1d3c7071-ec32-4193-9501-02eb5fe5528c.png)
-
-
 
 
 
