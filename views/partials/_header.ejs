@@ -8,7 +8,7 @@
       data-target="#navbarNavAltMarkup"
       aria-controls="navbarNavAltMarkup"
       aria-expanded="false"
-      aria-label="Toggle navigation"
+      aria-label="Toggle nagivation"
     >
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -16,22 +16,29 @@
       <div class="navbar-nav">
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
-        <% if(!user){ %>
-        <a class="nav-item nav-link" href="/register">Register</a>
-        <a class="nav-item nav-link" href="/login">Login</a>
-        <% } %>
       </div>
-
-      <% if(user){ %>
-      <form class="form-inline" action="/logout" method="POST">
-        <div class="form-group mb-2">
-          <button type="submit" class="btn btn-primary">Log Out</button>
-        </div>
-        <p> Logged in as <%= user.email %> </p>
-      </form>
-          <% } %>
-        </div>
     </div>
+    <% if (user) { %>
+    <form method="POST" action="/logout" class="form-inline">
+      <div class="form-group form-inline">
+        <label>Logged In As: <%= user.email %></label>
+        <button type="submit" class="btn btn-outline-dark" style="margin: 1em">
+          Logout
+        </button>
+      </div>
+    </form>
+    <% } else { %>
+    <div
+      class="collapse navbar-collapse justify-content-end"
+      id="navbarNavAltMarkup"
+    >
+      <div class="navbar-nav">
+        <a class="nav-item nav-link" href="/login" style="margin: 1em">Login</a>
+        <a class="nav-item nav-link" href="/register" style="margin: 1em"
+          >Register</a
+        >
+      </div>
+    </div>
+    <% } %>
   </nav>
 </header>
-
