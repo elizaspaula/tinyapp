@@ -25,7 +25,7 @@ const urlsForUser = (id, urlDatabase) => {
 };
 
 // Function to generate a random string, used for creating shortURL and UserID
-function generateRadomString(
+function generateRandomString(
   length,
   chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ) {
@@ -37,5 +37,5 @@ function generateRadomString(
 module.exports = {
   findUserByEmail,
   urlsForUser,
-  generateRadomString,
+  generateRandomString,
 };
