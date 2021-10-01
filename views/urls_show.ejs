@@ -21,11 +21,7 @@
           Short URL: <a href="/u/<%= shortURL %>"><%= shortURL %></a>
         </p>
         <h3>Edit</h3>
-        <form
-          class="form-inline"
-          action="/urls/<%= shortURL%>/edit"
-          method="POST"
-        >
+        <form class="form-inline" action="/urls/<%= shortURL%>" method="POST">
           <class class="form-group mb-2">
             <label for="newURL">New URL:</label>
             <input
