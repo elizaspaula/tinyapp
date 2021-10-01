@@ -8,7 +8,7 @@ const PORT = 8080;
 const {
   findUserByEmail,
   urlsForUser,
-  generateRadomString,
+  generateRandomString,
 } = require("./helpers");
 
 app.use(cookieParser());
@@ -77,7 +77,7 @@ app.post("/register", (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
   //console.log("Hash pass:", password, hashedPassword);
 
-  const newUserID = generateRadomString(4);
+  const newUserID = generateRandomString(4);
 
   usersDatabase[newUserID] = {
     id: newUserID,
