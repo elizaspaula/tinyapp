@@ -1,21 +1,14 @@
+//App setup
 const express = require("express");
+const app = express();
+const PORT = 8080;
+
 const morgan = require("morgan");
 const bcrypt = require("bcryptjs");
 const cookieSession = require("cookie-session");
 const cookieParser = require("cookie-parser");
-const app = express();
-const PORT = 8080;
-const {
-  findUserByEmail,
-  urlsForUser,
-  generateRandomString,
-} = require("./helpers");
-
-const urlDatabase = {};
-const usersDatabase = {};
 
 const bodyParser = require("body-parser");
-
 app.use(cookieParser());
 app.use(morgan("dev"));
 app.set("view engine", "ejs");
@@ -30,8 +23,23 @@ app.use(
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//Below the end point
+//Helpers functions:
+const {
+  findUserByEmail,
+  urlsForUser,
+  generateRandomString,
+} = require("./helpers");
 
+//Variable to store the URL and USER
+const urlDatabase = {};
+const usersDatabase = {};
+
+//---------------------------------------------------------------------------------------------------------------------------------------------------//
+
+// ** ROUTING BELOW ** //
+
+//Root - GET /
+//Redirect to /urls if the user is logged, otherwise go to /login
 app.get("/", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -41,21 +49,30 @@ app.get("/", (req, res) => {
   res.redirect("/url");
 });
 
+// Root - GET /register
+// Redirect to/url if the user is logged, otherwise go to register page
 app.get("/register", (req, res) => {
+  if (req.session.user_id) {
+    return res.redirect("/urls");
+  }
   res.render("urls_register");
 });
 
+//Root - POST /register
+//Redirected to the /urls if the credentials are valid, otherwise it will create a new user.
 app.post("/register", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  const user = findUserByEmail(email);
 
   if (!email || !password) {
-    return res.status(400).send("email or password cannot be blank");
+    return res.status(400).send("Email or Password cannot be blank");
   }
 
+  const user = findUserByEmail(email, usersDatabase);
   if (user) {
-    return res.status(400).send("user with that email currently exists");
+    return res
+      .status(400)
+      .send("User with that email currently exists. Please go to login page");
   }
 
   const hashedPassword = bcrypt.hashSync(password, 10);
@@ -74,6 +91,8 @@ app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
 });
 
+//Root - GET /urls
+//Redirect to index page if the user is logged, otherwise will return an error message
 app.get("/urls", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -85,6 +104,8 @@ app.get("/urls", (req, res) => {
   res.render("urls_index", templateVars);
 });
 
+//Root - POST /urls
+//Redirect to index page if the user is logged,otherwise will show up an error message
 app.post("/urls", (req, res) => {
   const userID = req.session.user_id;
   const user = usersDatabase[userID];
@@ -102,6 +123,8 @@ app.post("/urls", (req, res) => {
   res.redirect("/urls/" + shortURL);
 });
 
+//Root - GET /urls/new
+//Redirect to urls_new if the user is logged. Otherwise it will redirect to login page.
 app.get("/urls/new", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -113,6 +136,9 @@ app.get("/urls/new", (req, res) => {
   res.render("urls_new", templateVars);
 });
 
+//Root - GET urls/:shortURL
+//Redirect to urls_show if the user is logged. Otherwise will redirect to "unlloged_page".
+//Note - users can access only their own shortULR
 app.get("/urls/:shortURL", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -136,6 +162,8 @@ app.get("/urls/:shortURL", (req, res) => {
   res.render("urls_show", templateVars);
 });
 
+//Root - GET "/u/:shortURL"
+//Redirect to longURL if the shortURL exists. Otherwise will return an error message
 app.get("/u/:shortURL", (req, res) => {
   const shortURL = req.params.shortURL;
   const url = urlDatabase[shortURL];
@@ -146,6 +174,8 @@ app.get("/u/:shortURL", (req, res) => {
   res.redirect(url.longURL);
 });
 
+//Root - POST /urls/:shortURL/delete
+//If the user is logged and owns the URL can delete the shortULR and it will redirect to /urls. Otherwise the user can't delete it.
 app.post("/urls/:shortURL/delete", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -163,6 +193,8 @@ app.post("/urls/:shortURL/delete", (req, res) => {
   res.redirect("/urls");
 });
 
+//Root - POST /urls/:shortURL
+//If the user is logged redirect to URL and allow to update it. If the user doesn't own the URL or it's not logged returns error message.
 app.post("/urls/:shortURL", (req, res) => {
   const userId = req.session.user_id;
   const user = usersDatabase[userId];
@@ -180,23 +212,32 @@ app.post("/urls/:shortURL", (req, res) => {
   res.redirect("/urls/" + shortUrlID);
 });
 
+//Root - GET /login
+//Redirects to urls index page if already logged in
 app.get("/login", (req, res) => {
+  if (req.session.user_id) {
+    return res.redirect("/urls");
+  }
   res.render("urls_login");
 });
 
+//Root - POST /login
+//redirects to urls index page if email and password are valid. Otherwise it will return an error message
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
   const user = findUserByEmail(email, usersDatabase);
-  const hashedPassword = user.password;
+
   if (!email || !password) {
-    return res.status(403).send("email or password cannot be blank");
+    return res.status(403).send("Email or Password cannot be blank");
   }
 
   if (!user) {
-    return res.status(403).send("no user with that email was found");
+    return res
+      .status(403)
+      .send("No user with that email was found. Please register a new user");
   }
-
+  const hashedPassword = user.password;
   if (!bcrypt.compareSync(password, hashedPassword)) {
     return res.status(403).send("password does not match");
   }
@@ -205,6 +246,8 @@ app.post("/login", (req, res) => {
   res.redirect("/urls/");
 });
 
+//Root - Post Logout
+//Clears cookies and redirects to urls index page
 app.post("/logout", (req, res) => {
   req.session = null;
   res.redirect("/urls/");
